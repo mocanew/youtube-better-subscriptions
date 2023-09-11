@@ -1,60 +1,69 @@
-let hidden = [];
+import {sectionContentsQuery, sectionDismissableQuery, vidQuery} from './queries';
+import {HIDE_WATCHED_TOGGLE} from './subs-ui';
+import {log} from './util';
+import {SubscriptionVideo} from './Video';
+
+const hidden = [];
 let hideWatched = null;
 let hidePremieres = null;
 let hideShorts = null;
 let intervalId = null;
 
 function isYouTubeWatched(item) {
-    let ytWatchedPercentThreshold = settings["settings.mark.watched.youtube.watched"];
+    const ytWatchedPercentThreshold = settings['settings.mark.watched.youtube.watched'];
     return ytWatchedPercentThreshold === true && (
-            (item.querySelectorAll("yt-formatted-string.style-scope.ytd-thumbnail-overlay-playback-status-renderer").length > 0 || //has "WATCHED" on thumbnail
-                    item.querySelectorAll("#progress.style-scope.ytd-thumbnail-overlay-resume-playback-renderer").length > 0) || //has progress bar on thumbnail TODO allow percentage threshold
-            item.hasAttribute("is-dismissed") //also hide empty blocks left in by pressing "HIDE" button
-    )
+        (
+            item.querySelectorAll('yt-formatted-string.style-scope.ytd-thumbnail-overlay-playback-status-renderer').length > 0 // has "WATCHED" on thumbnail
+            || item.querySelectorAll('#progress.style-scope.ytd-thumbnail-overlay-resume-playback-renderer').length > 0 // has progress bar on thumbnail TODO allow percentage threshold
+        )
+        || item.hasAttribute('is-dismissed') // also hide empty blocks left in by pressing "HIDE" button
+    );
 }
 
 function hideWatchedChanged(event) {
     try {
-        let toggle = document.getElementById(HIDE_WATCHED_TOGGLE);
-        log("Hide Watched checkbox was changed. New value is: " + !hideWatched);
+        const toggle = document.getElementById(HIDE_WATCHED_TOGGLE);
+        log('Hide Watched checkbox was changed. New value is: ' + !hideWatched);
 
         if (hideWatched) {
             hideWatched = false;
-            toggle.classList.remove("subs-btn-hide-watched-checked");
-            toggle.classList.add("subs-btn-hide-watched-unchecked");
+            toggle.classList.remove('subs-btn-hide-watched-checked');
+            toggle.classList.add('subs-btn-hide-watched-unchecked');
             showWatched();
-        } else {
+        }
+        else {
             hideWatched = true;
-            toggle.classList.remove("subs-btn-hide-watched-unchecked");
-            toggle.classList.add("subs-btn-hide-watched-checked");
+            toggle.classList.remove('subs-btn-hide-watched-unchecked');
+            toggle.classList.add('subs-btn-hide-watched-checked');
             removeWatchedAndAddButton();
         }
-    } catch (e) {
-        logError(e);
+    }
+    catch (error) {
+        logError(error);
     }
 }
 
 function collapseSectionChanged(event) {
     try {
-        let checkbox = event.target;
-        log("Checkbox for section " + checkbox.getAttribute("id") + " changed. New value is: " + checkbox.checked);
+        const checkbox = event.target;
+        log('Checkbox for section ' + checkbox.getAttribute('id') + ' changed. New value is: ' + checkbox.checked);
 
-        let contentDiv = checkbox.closest(sectionDismissableQuery()).querySelector(sectionContentsQuery());
+        const contentDiv = checkbox.closest(sectionDismissableQuery()).querySelector(sectionContentsQuery());
         if (checkbox.checked) {
             contentDiv.style.display = '';
-        } else {
+        }
+        else {
             contentDiv.style.display = 'none';
             loadMoreVideos();
         }
-    } catch (e) {
-        logError(e);
+    }
+    catch (error) {
+        logError(error);
     }
 }
 
 function markAllAsWatched() {
-    let els = document.querySelectorAll(vidQuery());
-
-    for (let item of els) {
+    for (const item of document.querySelectorAll(vidQuery())) {
         new SubscriptionVideo(item).markWatched();
     }
 
@@ -62,11 +71,11 @@ function markAllAsWatched() {
 }
 
 function loadMoreVideos() {
-    log("Loading more videos");
+    log('Loading more videos');
 
     // workaround to load more videos, slightly scroll in the sidebar :)
-    let sidebar = document.getElementById("guide-inner-content");
-    let top = sidebar.scrollTop;
+    const sidebar = document.getElementById('guide-inner-content');
+    const top = sidebar.scrollTop;
     // +1 -1 so the scroll moves a bit even if its at complete bottom or top
     sidebar.scrollTop += 1;
     sidebar.scrollTop -= 1;
@@ -74,44 +83,41 @@ function loadMoreVideos() {
     sidebar.scrollTop = top;
 }
 
-function getVideoTitle(item) {
-    return item.querySelector("#video-title").title;
-}
-
 async function initSubs() {
-    log("Initializing subs page...");
+    log('Initializing subs page...');
 
     await loadWatchedVideos();
 
-    if (hideWatched == null || !settings["settings.hide.watched.keep.state"]) {
-        hideWatched = settings["settings.hide.watched.default"];
+    if (hideWatched == null || !settings['settings.hide.watched.keep.state']) {
+        hideWatched = settings['settings.hide.watched.default'];
     }
     if (hidePremieres == null) {
-        hidePremieres = settings["settings.hide.premieres"];
+        hidePremieres = settings['settings.hide.premieres'];
     }
     if (hideShorts == null) {
-        hideShorts = settings["settings.hide.shorts"];
+        hideShorts = settings['settings.hide.shorts'];
     }
 
     buildUI();
 
-    intervalId = window.setInterval(function () {
+    intervalId = window.setInterval(() => {
         if (hideWatched) {
             try {
                 removeWatchedAndAddButton();
-            } catch (e) {
-                logError(e);
+            }
+            catch (error) {
+                logError(error);
             }
         }
-    }, settings["settings.hide.watched.refresh.rate"]);
+    }, settings['settings.hide.watched.refresh.rate']);
 
     removeWatchedAndAddButton();
 
-    log("Initializing subs page... DONE");
+    log('Initializing subs page... DONE');
 }
 
 function stopSubs() {
-    log("Stopping subs page behaviour");
+    log('Stopping subs page behaviour');
 
     removeUI();
     window.clearInterval(intervalId);

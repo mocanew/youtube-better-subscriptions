@@ -1,90 +1,87 @@
-log("Initializing settings page...");
+import {brwsr, loadSettings} from '../../common';
+import {log, logError} from '../../util';
 
-document.addEventListener("DOMContentLoaded", setupButtons);
-document.addEventListener("DOMContentLoaded", initSettings);
+log('Initializing settings page...');
 
-function initSettings() {
-    if (settingsLoaded) {
-        hideSpinners();
-        showSettings();
-        updateSettings();
-    } else {
-        settingsLoadedCallbacks.push(hideSpinners, showSettings, updateSettings);
+document.addEventListener('DOMContentLoaded', setupButtons);
+document.addEventListener('DOMContentLoaded', initSettings);
+
+async function initSettings() {
+    const settings = await loadSettings();
+
+    // hideSpinners
+    for (const elem of document.querySelectorAll('.sk-circle')) {
+        elem.classList.add('hidden');
     }
-}
 
-function updateSettings() {
-    for (let key in settings) {
-        let elem = document.getElementById(key);
+    // showSettings
+    for (const elem of document.querySelectorAll('[id^=\'settings-\']')) {
+        elem.classList.remove('hidden');
+    }
+
+    // updateSettings
+    for (const key in settings) {
+        const elem = document.getElementById(key);
         if (elem) {
             if (elem.matches('input[type="checkbox"]')) {
                 elem.checked = settings[key];
-            } else {
+            }
+            else {
                 elem.value = settings[key];
             }
-        } else {
+        }
+        else {
             logError({
-                "message": "Updating setting #" + key + " returned " + elem,
-                "stack": "settings.js:updateSettings",
+                'message': `Updating setting #${key} returned ${elem}`,
+                'stack': 'settings.js:updateSettings',
             });
         }
     }
 }
 
-function showSettings() {
-    for (let elem of document.querySelectorAll("[id^='settings-']")) {
-        elem.classList.remove("hidden");
-    }
-}
-
-function hideSpinners() {
-    for (let elem of document.getElementsByClassName("sk-circle")) {
-        elem.classList.add("hidden");
-    }
-}
-
 function saveSettings() {
-    let values = {};
+    const values = {};
 
-    for (let elem of document.querySelectorAll("input[id^='settings.']")) {
+    for (const elem of document.querySelectorAll('input[id^=\'settings.\']')) {
         if (elem.matches('input[type="checkbox"]')) {
             values[elem.id] = elem.checked;
-        } else {
-            values[elem.id] = elem.value
+        }
+        else {
+            values[elem.id] = elem.value;
         }
     }
 
-    log("Saving values:" + JSON.stringify(values));
+    log('Saving values:' + JSON.stringify(values));
     brwsr.storage.sync.set({
-        [SETTINGS_KEY]: values
+        [SETTINGS_KEY]: values,
     });
 }
 
 function setupButtons() {
-    document.getElementById("settings-save").addEventListener("click", saveSettings);
-    document.getElementById("watched.export").addEventListener("click", exportVideos);
-    document.getElementById("watched.import").addEventListener("click", importVideos);
-    document.getElementById("watched.clear").addEventListener("click", clearVideos);
+    document.querySelector('#settings-save').addEventListener('click', saveSettings);
+    document.querySelector('#watched.export').addEventListener('click', exportVideos);
+    document.querySelector('#watched.import').addEventListener('click', importVideos);
+    document.querySelector('#watched.clear').addEventListener('click', clearVideos);
 }
 
 async function exportVideos() {
     await loadWatchedVideos();
 
-    download("[Better Subs] video export " + new Date() + ".json", JSON.stringify(watchedVideos), "application/json");
+    download('[Better Subs] video export ' + new Date() + '.json', JSON.stringify(watchedVideos), 'application/json');
 }
 
 async function importVideos() {
-    const file = document.getElementById("watched.import.file").files[0];
+    const file = document.querySelector('#watched.import.file').files[0];
 
     if (!file) {
-        window.alert("No file selected!");
+        window.alert('No file selected!');
         return;
     }
 
     const text = await file.text();
 
     try {
-        let parsed = JSON.parse(text);
+        const parsed = JSON.parse(text);
 
         if (Array.isArray(parsed)) {
             // new format
@@ -102,20 +99,21 @@ async function importVideos() {
         }
         await saveWatchedVideos();
 
-        window.alert("Imported " + Object.keys(parsed).length + " watched videos successfully");
-    } catch (e) {
-        window.alert("Error parsing import file!");
+        window.alert('Imported ' + Object.keys(parsed).length + ' watched videos successfully');
+    }
+    catch {
+        window.alert('Error parsing import file!');
     }
 }
 
 async function clearVideos() {
-    if (window.confirm("This is a destructive operation and will remove all of your marked as watched videos! \nAre you sure?")) {
+    if (window.confirm('This is a destructive operation and will remove all of your marked as watched videos! \nAre you sure?')) {
         await Promise.all(
             Object.keys((await brwsr.storage.sync.get(null)) || {}).map(key => {
                 if (key.indexOf(VIDEO_WATCH_KEY) === 0) {
                     brwsr.storage.sync.remove(key);
                 }
-            })
+            }),
         );
     }
 }

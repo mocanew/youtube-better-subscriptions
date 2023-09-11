@@ -1,37 +1,41 @@
-const PREFIX = "osasoft-better-subscriptions_";
+import {log} from './util';
+
+export const PREFIX = 'osasoft-better-subscriptions_';
 
 const DEFAULT_SETTINGS = {
-    "settings.hide.watched.label": true,
-    "settings.hide.watched.all.label": true,
-    "settings.hide.watched.ui.stick.right": false,
-    "settings.hide.watched.default": true,
-    "settings.hide.watched.keep.state": true,
-    "settings.hide.watched.refresh.rate": 3000,
-    "settings.mark.watched.youtube.watched": false,
-    "settings.log.enabled": false,
-    "settings.hide.watched.support.channel": true,
-    "settings.hide.watched.support.home": true,
-    "settings.hide.watched.auto.store": true,
-    "settings.hide.premieres": false,
-    "settings.hide.shorts": false,
+    'settings.hide.watched.label': true,
+    'settings.hide.watched.all.label': true,
+    'settings.hide.watched.ui.stick.right': false,
+    'settings.hide.watched.default': true,
+    'settings.hide.watched.keep.state': true,
+    'settings.hide.watched.refresh.rate': 3000,
+    'settings.mark.watched.youtube.watched': false,
+    'settings.log.enabled': false,
+    'settings.hide.watched.support.channel': true,
+    'settings.hide.watched.support.home': true,
+    'settings.hide.watched.auto.store': true,
+    'settings.hide.premieres': false,
+    'settings.hide.shorts': false,
 };
 
-const SETTINGS_KEY = "settings";
-const VIDEO_WATCH_KEY = "vw_";
+const SETTINGS_KEY = 'settings';
+const VIDEO_WATCH_KEY = 'vw_';
 
 // Storage sync set operations may be throttled https://developer.chrome.com/docs/extensions/reference/storage/#property-sync
 const WATCHED_SYNC_THROTTLE = 1000;
 
-let brwsr;
+let brwsr: typeof browser;
 try {
     brwsr = browser;
-} catch (e) {
-    if (e instanceof ReferenceError) {
+}
+catch (error) {
+    if (error instanceof ReferenceError) {
         brwsr = chrome;
     }
 }
+export {brwsr};
 
-const watchedVideos = [];
+export const watchedVideos = [];
 
 async function loadWatchedVideos() {
     const items = await brwsr.storage.sync.get(null);
@@ -41,7 +45,7 @@ async function loadWatchedVideos() {
         if (key.indexOf(VIDEO_WATCH_KEY) !== 0) {
             continue;
         }
-        const index = parseInt(key.slice(VIDEO_WATCH_KEY.length));
+        const index = Number.parseInt(key.slice(VIDEO_WATCH_KEY.length));
 
         const watchedBatch = items[key];
         if (!Array.isArray(watchedBatch)) {
@@ -61,7 +65,7 @@ async function loadWatchedVideos() {
             .filter(key => typeof oldItems[key] === 'number')
             .sort((key1, key2) => oldItems[key2] - oldItems[key1])
     );
-    if (sortedKeys.length) {
+    if (sortedKeys.length > 0) {
         watchedVideos.unshift(...sortedKeys);
 
         console.log('Migrated old format watch history', sortedKeys.length);
@@ -84,15 +88,15 @@ async function saveWatchedVideos() {
     for (const video of watchedVideos) {
         const key = VIDEO_WATCH_KEY + Object.keys(batches).length;
         const potentialBatchSize = JSON.stringify({
-            [key]: [...currentBatch, video]
+            [key]: [...currentBatch, video],
         }).length;
 
         // theoretical max size is 8192, but it's safer to have some margin
         if (potentialBatchSize >= 8000) {
             if (JSON.stringify({
                 ...batches,
-                [key]: currentBatch
-            }).length > 100000) {
+                [key]: currentBatch,
+            }).length > 100_000) {
                 // quota exhausted, older entries will be discarded
                 break;
             }
@@ -124,11 +128,25 @@ brwsr.storage.onChanged.addListener((changes, areaName) => {
     loadWatchedVideos();
 });
 
-function getCurrentPage() {
-    let path = window.location.pathname;
-    if (path != null) {
-        return path.replace(/\/$/, "");
+export function getCurrentPage() {
+    return (window.location.pathname || '').replace(/\/$/, '');
+}
+
+let settings = {...DEFAULT_SETTINGS};
+let settingsLoaded = false;
+
+export async function loadSettings() {
+    if (settingsLoaded) {
+        return settings;
     }
 
-    return "";
+    const items = await brwsr.storage.sync.get(SETTINGS_KEY);
+
+    log('Settings loaded:');
+    log(items[SETTINGS_KEY]);
+    settingsLoaded = true;
+
+    settings = {...settings, ...items[SETTINGS_KEY]};
+
+    return settings;
 }
