@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ES2016",
+        "lib": [
+            "ES2021",
+            "DOM",
+        ],
+        "typeRoots": [
+            "node_modules/@types",
+            "node_modules/web-ext-types",
+        ],
+        "outDir": "dist",
+        "moduleResolution": "node",
+        "skipLibCheck": true,
+        "strictNullChecks": false,
+    },
+    "include": [
+        "*.ts"
+    ]
+}

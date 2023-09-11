@@ -1,0 +1,20 @@
+{
+  "name": "youtube-better-subscriptions",
+  "version": "1.0.0",
+  "description": "This plugin aims to make navigating YouTube's subscription grid easier by allowing users to hide watched videos.",
+  "main": "common.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "Oscar Hernández",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "@ag-media/eslint-config": "^1.1.19",
+    "@nkzw/eslint-config": "^1.5.0",
+    "query-string": "^8.1.0",
+    "typescript": "^5.2.2",
+    "web-ext-types": "^3.2.1"
+  }
+}
